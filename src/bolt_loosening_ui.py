@@ -8,6 +8,7 @@
 import sys
 import cv2
 import glob
+import math
 from tkinter import filedialog
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -26,7 +27,7 @@ except ImportError:
 
     py3 = True
 
-import bolt_loosening_ui_support
+from src import bolt_loosening_ui_support
 
 
 def vp_start_gui():
@@ -85,7 +86,7 @@ class BoltLooseningMain:
         self.btnEdge.configure(state="active")
 
     def edgedetect(self):
-        if(self.cmbBoltSize.current() == -1):
+        if(self.cmbBoltSize.current() == (-1)):
             messagebox.showerror("Error", "Please select the bolt size")
         elif(self.cmbPlateWidth.current() == -1):
             messagebox.showerror("Error", "Please select the steel palte size")
@@ -163,6 +164,40 @@ class BoltLooseningMain:
             # Display the detection of nut and bolt
             self.lblResult.configure(image=photo)
             self.lblResult.image = photo
+
+            x = self.my_list[1][0] - self.my_list[0][0]
+            y = self.my_list[1][1] - self.my_list[0][1]
+
+            gap = (x * x) + (y * y)
+            gap = math.sqrt(gap)
+            print('Gap in Pixels', gap)
+            print('Gap in Centimeters', (gap * 2.54 / 96))
+            cm_value = (gap * 2.54 / 96)
+            cv2.imwrite('final.png', self.canny)
+            if gap > 84.0:
+                # print('Bolt-loosening Detected')
+                messagebox.showwarning("Warning", "Bolt-loosening detected ! | "+str(cm_value)+" cm bolt is loosened")
+                self.report_txt(str(cm_value))
+                self.reset_all()
+            else:
+                print('Bolt Fixed')
+                messagebox.showinfo("Information", "Bolt is Fixed")
+
+    def reset_all(self):
+        self.btnEvaluate.configure(state="disabled")
+        self.btnEdge.configure(state="disabled")
+        self.btnNut.configure(state="disabled")
+        self.lblFileLocation.configure(text="File Location")
+        self.lblOriginalImg.configure(image='')
+        self.lblEdgeImg.configure(image='')
+        self.lblBoltNut.configure(image='')
+        self.lblResult.configure(image='')
+
+    def report_txt(self, value):
+        f = open("bolt_loosening_report.txt", "+w")
+        print(f)
+        f.write(value)
+        f.close()
 
     def __init__(self, top=None):
         '''This class configures and populates the toplevel window.
